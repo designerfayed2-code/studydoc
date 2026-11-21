@@ -44,7 +44,9 @@ export function itemsToText(items) {
   return out.replace(/\u0000/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
-export async function extractPdf(buf, name, pdfjs, onProgress = () => {}) {
+// opts.ocr: async () => ({ pageText(page), dispose() })  - when given, pages with no text are read by OCR.
+// opts.signal: { cancelled: bool }, opts.onOcr(done, total)
+export async function extractPdf(buf, name, pdfjs, onProgress = () => {}, opts = {}) {
   if (!buf || !buf.byteLength) throw new PdfError('empty');
   let pdf;
   const task = pdfjs.getDocument({ data: new Uint8Array(buf.slice(0)), isEvalSupported: false });
@@ -55,9 +57,11 @@ export async function extractPdf(buf, name, pdfjs, onProgress = () => {}) {
     throw new PdfError(e && e.name === 'PasswordException' ? 'password' : 'unreadable', String(e && e.message));
   }
   const pages = [];
-  const unreadable = [];
+  let unreadable = [];
+  const ocrPages = [];
   try {
     for (let i = 1; i <= pdf.numPages; i++) {
+      if (opts.signal?.cancelled) throw new PdfError('cancelled');
       const page = await pdf.getPage(i);
       const text = itemsToText((await page.getTextContent()).items);
       page.cleanup();
@@ -65,14 +69,35 @@ export async function extractPdf(buf, name, pdfjs, onProgress = () => {}) {
       pages.push({ page: i, text });
       onProgress(i, pdf.numPages);
     }
+    if (unreadable.length && opts.ocr) {
+      let engine = null;
+      try { engine = await opts.ocr(); } catch (e) {
+        if (unreadable.length === pages.length) throw new PdfError('ocrFailed', String(e && e.message));
+      }
+      if (engine) {
+        try {
+          const todo = [...unreadable];
+          for (let k = 0; k < todo.length; k++) {
+            if (opts.signal?.cancelled) throw new PdfError('cancelled');
+            opts.onOcr?.(k + 1, todo.length);
+            const page = await pdf.getPage(todo[k]);
+            const text = await engine.pageText(page);
+            page.cleanup();
+            if (opts.signal?.cancelled) throw new PdfError('cancelled');
+            if (text.length >= MIN_CHARS_PER_PAGE) { pages[todo[k] - 1].text = text; ocrPages.push(todo[k]); }
+          }
+          unreadable = unreadable.filter((n) => !ocrPages.includes(n));
+        } finally { try { await engine.dispose?.(); } catch { /* ignore */ } }
+      }
+    }
   } finally {
     try { await task.destroy(); } catch { /* ignore */ }
   }
   if (!pages.length) throw new PdfError('empty');
-  if (unreadable.length === pages.length) throw new PdfError('noText');
+  if (unreadable.length === pages.length) throw new PdfError(opts.ocr ? 'noTextOcr' : 'noText');
   const chars = pages.reduce((a, p) => a + p.text.length, 0);
   return {
     id: randomId(10), name, sha1: await hashBytes(buf), n_pages: pages.length, n_chars: chars,
-    est_tokens: Math.floor(chars / 3.5) + 1, unreadable_pages: unreadable, added_at: Date.now(), pages,
+    est_tokens: Math.floor(chars / 3.5) + 1, unreadable_pages: unreadable, ocr_pages: ocrPages, added_at: Date.now(), pages,
   };
 }

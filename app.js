@@ -4,6 +4,7 @@ import {
 } from './core.js';
 import * as store from './store.js';
 import { extractPdf, getPdfjs, hashBytes, PdfError } from './pdfread.js';
+import { createBrowserOcr } from './ocr.js';
 
 const T = {
   en: {
@@ -16,7 +17,7 @@ const T = {
     partly: (n) => `${n} page(s) have no readable text.`, pages: (n) => `${n} pages`,
     err_empty: 'The file is empty.', err_unreadable: 'The file could not be read (it may be damaged).',
     err_password: 'The file is password-protected. Remove the password and upload it again.',
-    err_noText: 'The file has no extractable text (it looks scanned). Run OCR on it first.',
+    err_noText: 'The file has no extractable text (it looks scanned). Turn on OCR in the menu ☰ and add it again.',
     noDocs: 'No documents yet', noDocsHelp: 'Open the menu ☰ and add one or more PDF files.',
     placeholder: 'Ask a question, a True/False statement, or a multiple-choice question…', send: 'Send',
     type_auto: 'Auto', type_true_false: 'True / False', type_multiple_choice: 'Multiple choice', type_open: 'Open',
@@ -38,6 +39,11 @@ const T = {
     noKeyTerms: 'No page shares any key terms with this question.', thinking: 'Searching the documents...',
     pagesRead: (s, t) => `${s}/${t} pages read`, engineName: { local: 'Offline engine', manual: 'Claude (manual)' },
     newTitle: 'New study session', close: 'Close',
+    ocrOn: 'Read scanned pages with OCR (free, slower)', ocrReading: (n, t, name) => `Scanned pages: OCR ${n} of ${t} in ${name} ... (this can take a while)`,
+    ocrBadge: (n) => `📷 ${n} page(s) read by OCR`, ocrWarn: 'Some evidence comes from OCR (text recognised from an image) and may contain small errors - check it against the page.',
+    cancelUpload: 'Cancel reading', err_cancelled: 'Cancelled.',
+    err_noTextOcr: 'No readable text was found, even with OCR. The scan may be too faint or blurry.',
+    err_ocrFailed: 'OCR could not start. Its files are downloaded the first time you are online - connect to the internet once and try again.',
   },
   ar: {
     tagline: 'الإجابات من ملفات PDF فقط - مع رقم الصفحة والاقتباس الحرفي.',
@@ -49,7 +55,7 @@ const T = {
     partly: (n) => `${n} صفحة بلا نص قابل للقراءة.`, pages: (n) => `${n} صفحة`,
     err_empty: 'الملف فارغ.', err_unreadable: 'تعذّرت قراءة الملف (قد يكون تالفًا).',
     err_password: 'الملف محمي بكلمة مرور. أزل كلمة المرور ثم أعد الرفع.',
-    err_noText: 'لا يحتوي الملف على نص قابل للاستخراج (يبدو ممسوحًا ضوئيًا). استخدم OCR أولًا.',
+    err_noText: 'لا يحتوي الملف على نص قابل للاستخراج (يبدو ممسوحًا ضوئيًا). فعّل OCR من القائمة ☰ ثم أضفه مرة أخرى.',
     noDocs: 'لا توجد مستندات بعد', noDocsHelp: 'افتح القائمة ☰ ثم أضف ملف PDF واحدًا أو أكثر.',
     placeholder: 'اكتب سؤالًا أو عبارة صح/خطأ أو سؤال اختيار من متعدد…', send: 'إرسال',
     type_auto: 'تلقائي', type_true_false: 'صح / خطأ', type_multiple_choice: 'اختيار من متعدد', type_open: 'مفتوح',
@@ -71,6 +77,11 @@ const T = {
     noKeyTerms: 'لا توجد صفحة تشترك مع السؤال في أي كلمة مهمة.', thinking: 'جارٍ البحث في المستندات...',
     pagesRead: (s, t) => `${s}/${t} صفحة`, engineName: { local: 'المحرك المحلي', manual: 'Claude (يدوي)' },
     newTitle: 'جلسة دراسة جديدة', close: 'إغلاق',
+    ocrOn: 'قراءة الصفحات الممسوحة ضوئيًا بتقنية OCR (مجاني، أبطأ)', ocrReading: (n, t, name) => `صفحات ممسوحة: OCR ${n} من ${t} في ${name} ... (قد يستغرق وقتًا)`,
+    ocrBadge: (n) => `📷 ${n} صفحة قُرئت بتقنية OCR`, ocrWarn: 'بعض الأدلة مصدرها OCR (نص مستخرج من صورة) وقد يحتوي أخطاء صغيرة - قارنه بالصفحة.',
+    cancelUpload: 'إلغاء القراءة', err_cancelled: 'أُلغيت العملية.',
+    err_noTextOcr: 'لم يُعثر على نص مقروء حتى مع OCR. قد تكون الصورة باهتة أو غير واضحة.',
+    err_ocrFailed: 'تعذّر تشغيل OCR. تُحمَّل ملفاته أول مرة عند الاتصال بالإنترنت - اتصل بالإنترنت مرة واحدة وأعد المحاولة.',
   },
 };
 
@@ -98,7 +109,7 @@ export async function start(deps = {}) {
   const S = {
     lang: (ls && ls.getItem('sd_lang')) || ((navigator.language || 'en').startsWith('ar') ? 'ar' : 'en'),
     engine: (ls && ls.getItem('sd_engine')) || 'offline',
-    manualK: Number((ls && ls.getItem('sd_manualk')) || 25), qtype: 'auto',
+    manualK: Number((ls && ls.getItem('sd_manualk')) || 25), qtype: 'auto', ocr: !(ls && ls.getItem('sd_ocr') === '0'), signal: null,
     session: null, sessions: [], docs: [], drawer: false, pending: null, flash: [], progress: '',
     draft: '', reply: '', replyError: '', copied: false, busy: false, index: null, indexKey: '',
     online: navigator.onLine !== false, installEvt: null, scrollBottom: true,
@@ -176,7 +187,11 @@ export async function start(deps = {}) {
         const buf = await readBuffer(f);
         const sha = await hashBytes(buf);
         if (known.has(sha)) { S.flash.push(['info', t('duplicate', f.name)]); continue; }
-        const doc = await extractPdf(buf, f.name, await pdfjs(), (n, total) => { S.progress = t('reading', n, total, f.name); if (n % 5 === 0 || n === total) render(); });
+        S.signal = { cancelled: false };
+        const doc = await extractPdf(buf, f.name, await pdfjs(), (n, total) => { S.progress = t('reading', n, total, f.name); if (n % 5 === 0 || n === total) render(); }, {
+          ocr: S.ocr ? (deps.ocr || createBrowserOcr) : null, signal: S.signal,
+          onOcr: (k, total) => { S.progress = t('ocrReading', k, total, f.name); render(); },
+        });
         const names = (await store.loadDocuments(session)).map((d) => d.name);
         await store.addDocument(session, doc, names);
         if (S.session.id === session.id) S.docs.push(doc);
@@ -189,7 +204,7 @@ export async function start(deps = {}) {
       }
     }
     S.sessions = await store.listSessions();
-    S.progress = ''; S.busy = false;
+    S.progress = ''; S.busy = false; S.signal = null;
     getIndex(); render();
   }
   async function removeDoc(id) { await store.removeDocument(S.session, id); S.docs = S.docs.filter((d) => d.id !== id); S.sessions = await store.listSessions(); render(); }
@@ -228,6 +243,7 @@ export async function start(deps = {}) {
       }
     }
     if (a.engine === 'local' && a.status === 'found') kids.push(h('div', { class: 'note' }, t('caveat')));
+    if ((a.evidence || []).some((e) => { const d = S.docs.find((x) => x.name === e.document); return d && (d.ocr_pages || []).includes(e.page); })) kids.push(h('div', { class: 'note warn', 'data-ocr': '1' }, t('ocrWarn')));
     if (a.reasoning && a.status === 'found' && a.engine !== 'local') kids.push(h('details', {}, h('summary', {}, '…'), h('div', { class: 'note', dir: 'auto' }, a.reasoning)));
     kids.push(h('div', { class: 'meta' }, `${t('pagesRead', a.pages_sent, a.pages_total)} · ${t('engineName')[a.engine] || a.model}`));
     return h('div', { class: 'msg assistant' }, kids);
@@ -238,7 +254,7 @@ export async function start(deps = {}) {
       h('span', { class: 'st', dir: 'auto' }, s.title), h('span', { class: 'sc' }, `${t('qa', Math.floor(s.n_messages / 2))} · ${s.n_docs} 📄`)));
     const input = h('input', { type: 'file', id: 'pdfinput', accept: 'application/pdf,.pdf', multiple: true, hidden: true, onChange: (e) => { addFiles(e.target.files); e.target.value = ''; } });
     const docs = S.docs.map((d) => h('div', { class: 'doc' },
-      h('div', { class: 'dn' }, h('b', { dir: 'auto' }, d.name), h('small', {}, t('pages', d.n_pages) + (d.unreadable_pages.length ? ' · ⚠️ ' + t('partly', d.unreadable_pages.length) : ''))),
+      h('div', { class: 'dn' }, h('b', { dir: 'auto' }, d.name), h('small', {}, t('pages', d.n_pages) + (d.unreadable_pages.length ? ' · ⚠️ ' + t('partly', d.unreadable_pages.length) : '') + ((d.ocr_pages || []).length ? ' · ' + t('ocrBadge', d.ocr_pages.length) : ''))),
       h('button', { class: 'x', 'aria-label': t('remove'), onClick: () => removeDoc(d.id) }, '✕')));
     return h('aside', { class: 'drawer' + (S.drawer ? ' open' : ''), id: 'drawer' },
       h('div', { class: 'dhead' }, h('b', {}, '📚 StudyDoc'), h('button', { class: 'x', id: 'closedrawer', 'aria-label': t('close'), onClick: () => { S.drawer = false; render(); } }, '✕')),
@@ -247,7 +263,10 @@ export async function start(deps = {}) {
       h('div', { class: 'row' }, h('button', { class: 'btn', id: 'renamebtn', onClick: renameSession }, '✎ ' + t('rename')), h('button', { class: 'btn danger', id: 'deletebtn', onClick: deleteSession }, '🗑 ' + t('del'))),
       h('h3', {}, t('documents')), input,
       h('label', { class: 'btn primary', for: 'pdfinput', id: 'addpdfs', role: 'button' }, t('addPdfs')),
-      S.progress && h('div', { class: 'note', id: 'progress' }, S.progress), ...docs,
+      h('label', { class: 'radio small' }, h('input', { type: 'checkbox', id: 'ocrtoggle', checked: S.ocr, onChange: (e) => { S.ocr = e.target.checked; ls && ls.setItem('sd_ocr', S.ocr ? '1' : '0'); } }), ' ' + t('ocrOn')),
+      S.progress && h('div', { class: 'note', id: 'progress' }, S.progress),
+      S.signal && h('button', { class: 'btn danger', id: 'cancelupload', onClick: () => { S.signal.cancelled = true; } }, t('cancelUpload')),
+      ...docs,
       h('h3', {}, t('engine')),
       ...['offline', 'manual'].map((e) => h('label', { class: 'radio' }, h('input', { type: 'radio', name: 'eng', value: e, checked: S.engine === e, onChange: () => setEngine(e) }), ' ' + t(e))),
       h('p', { class: 'small' }, S.engine === 'offline' ? t('helpOffline') : t('helpManual')),
