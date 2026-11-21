@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StudyDoc - دليل التشغيل على أندرويد</title>
+<style>
+  body{margin:0;font:17px/1.8 system-ui,"Noto Naskh Arabic","Noto Sans Arabic",Arial,sans-serif;color:#1F2430;background:#F4F5FA}
+  main{max-width:760px;margin:0 auto;padding:1rem 1rem 3rem}
+  header{background:#4F46E5;color:#fff;padding:1.2rem 1rem;text-align:center}
+  header h1{margin:0;font-size:1.5rem} header p{margin:.3rem 0 0;opacity:.9}
+  section{background:#fff;border-radius:16px;padding:1rem 1.1rem;margin:1rem 0;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  h2{font-size:1.2rem;color:#3730A3;margin:.2rem 0 .6rem}
+  ol,ul{padding-inline-start:1.3rem;margin:.4rem 0} li{margin:.35rem 0}
+  code,pre{direction:ltr;unicode-bidi:plaintext;background:#F1F2F8;border-radius:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9rem}
+  code{padding:.05rem .35rem} pre{padding:.7rem;overflow-x:auto;text-align:left}
+  .ok{background:#ECFDF3;border-inline-start:4px solid #12B76A;padding:.5rem .8rem;border-radius:8px}
+  .warn{background:#FFFAEB;border-inline-start:4px solid #F79009;padding:.5rem .8rem;border-radius:8px}
+  table{border-collapse:collapse;width:100%;font-size:.95rem} th,td{border:1px solid #E5E7EB;padding:.4rem .5rem;text-align:start;vertical-align:top} th{background:#F4F5FF}
+  .tag{display:inline-block;background:#4F46E5;color:#fff;border-radius:999px;padding:0 .6rem;font-size:.8rem}
+</style>
+</head>
+<body>
+<header><h1>📚 StudyDoc - دليل التشغيل على أندرويد</h1><p>إجابات من ملفات PDF فقط، مجانًا، مع رقم الصفحة والاقتباس الحرفي</p></header>
+<main>
+
+<section>
+<h2>ما هذا التطبيق؟</h2>
+<p>ترفع ملفات PDF على هاتفك، ثم تسأل، فيجيبك التطبيق <b>من الملفات فقط</b> ويعرض لك <b>اسم الملف ورقم الصفحة والنص الحرفي</b> الذي اعتمد عليه، ويتحقق من أن النص موجود فعلًا في الملف.</p>
+<ul>
+<li>صح/خطأ ← الإجابة فقط <code>Yes</code> أو <code>No</code>.</li>
+<li>اختيار من متعدد ← الخيار الصحيح مع نصه.</li>
+<li>سؤال مفتوح ← إجابة قصيرة.</li>
+<li>إن لم تكن المعلومة في الملف ← <code>Not found in the document.</code></li>
+</ul>
+<p class="ok">✅ مجاني بالكامل: لا اشتراك، لا رصيد، لا مفتاح API. ملفاتك <b>تبقى على هاتفك</b> ولا تُرفع إلى أي خادم.</p>
+</section>
+
+<section>
+<h2>اختر طريقة التشغيل</h2>
+<table>
+<tr><th>الطريقة</th><th>تحتاج كمبيوترًا؟</th><th>تحتاج إنترنت؟</th></tr>
+<tr><td><b>1) نشر التطبيق مجانًا على GitHub Pages</b> (الموصى بها)</td><td>لا - كل شيء من الهاتف</td><td>مرة واحدة للتجهيز والفتح الأول، ثم يعمل بدونه</td></tr>
+<tr><td><b>2) Termux</b> على الهاتف نفسه</td><td>لا</td><td>للتجهيز فقط</td></tr>
+<tr><td><b>3) نسخة الكمبيوتر (Streamlit) عبر Wi-Fi</b></td><td>نعم، في كل مرة</td><td>لا (شبكة Wi-Fi المنزلية تكفي)</td></tr>
+</table>
+</section>
+
+<section>
+<h2>الطريقة 1: GitHub Pages (بدون كمبيوتر) <span class="tag">موصى بها</span></h2>
+<ol>
+<li><b>فكّ ضغط ملف ZIP</b>: افتح تطبيق «الملفات» (Files by Google)، اضغط على ملف <code>studydoc_app.zip</code> ثم «استخراج». ستجد داخله مجلدًا اسمه <code>web</code>.</li>
+<li>افتح <code>github.com</code> في Chrome وأنشئ حسابًا مجانيًا (Sign up) ثم أكّد بريدك الإلكتروني.</li>
+<li>اضغط <b>+</b> ثم <b>New repository</b>. اكتب الاسم <code>studydoc</code> واختر <b>Public</b> ثم <b>Create repository</b>.</li>
+<li>اختر رابط <b>uploading an existing file</b>، ثم <b>choose your files</b>، وحدّد <b>جميع الملفات داخل مجلد web</b> (وليس المجلد نفسه) - عددها 17 ملفًا. انتظر انتهاء الرفع ثم اضغط <b>Commit changes</b>.
+<br><small>إن لم تتمكن من تحديد عدة ملفات: من قائمة Chrome (⋮) فعّل «موقع سطح المكتب» وأعد المحاولة.</small></li>
+<li>اذهب إلى <b>Settings ← Pages</b>. في خانة Source اختر <b>Deploy from a branch</b>، وفي Branch اختر <b>main</b> و <b>/ (root)</b> ثم <b>Save</b>.</li>
+<li>انتظر من دقيقة إلى ثلاث دقائق ثم حدّث الصفحة؛ سيظهر رابط التطبيق، شكله: <code>https://اسم-حسابك.github.io/studydoc/</code></li>
+<li>افتح الرابط في Chrome <b>وأنت متصل بالإنترنت</b> واتركه يحمّل ثواني. ثم اضغط ⋮ ← <b>«تثبيت التطبيق»</b> (أو «إضافة إلى الشاشة الرئيسية»).</li>
+<li>تظهر أيقونة 📚 على شاشتك. افتحها من الآن في أي وقت، <b>حتى دون إنترنت</b>.</li>
+</ol>
+<p class="warn">⚠️ أسماء الأزرار في GitHub و Chrome قد تتغير قليلًا مع الوقت. هذه الخطوات لم تُجرَّب على جهازك أنت، فإذا اختلف اسم زر فابحث عن أقرب خيار له.</p>
+<p class="ok">🔒 الرابط عام، لكنه يحتوي <b>كود التطبيق فقط</b>. ملفات PDF التي تفتحها لا تغادر هاتفك.</p>
+</section>
+
+<section>
+<h2>الطريقة 2: Termux (بدون استضافة)</h2>
+<ol>
+<li>ثبّت <b>Termux</b> من متجر <b>F-Droid</b> (النسخة الموجودة في Google Play قديمة).</li>
+<li>انسخ مجلد <code>web</code> إلى مجلد «التنزيلات» (Download) في هاتفك.</li>
+<li>افتح Termux والصق الأوامر التالية (واحدًا واحدًا):
+<pre>termux-setup-storage
+pkg update -y
+pkg install -y python
+cd ~/storage/downloads/web
+python -m http.server 8080</pre></li>
+<li>افتح Chrome واكتب العنوان <code>http://localhost:8080</code> ثم ⋮ ← «تثبيت التطبيق».</li>
+</ol>
+<p class="warn">⚠️ هذه الطريقة لم تُجرَّب على جهاز أندرويد حقيقي. استخدم الطريقة 1 إن أمكن.</p>
+</section>
+
+<section>
+<h2>الطريقة 3: على الكمبيوتر ثم الهاتف عبر Wi-Fi</h2>
+<p>نسخة Streamlit (في المجلد الرئيسي من المشروع) تعمل على الكمبيوتر. شغّل الملف <code>run_for_phone.bat</code> (ويندوز) أو <code>run_for_phone.sh</code> (ماك/لينكس)، وسيطبع عنوانًا مثل <code>http://192.168.1.20:8501</code>. افتحه في Chrome على هاتفك وهو متصل بنفس شبكة Wi-Fi. <b>يجب أن يبقى الكمبيوتر شغّالًا.</b></p>
+</section>
+
+<section>
+<h2>طريقة الاستخدام</h2>
+<ol>
+<li>اضغط ☰ ثم <b>➕ إضافة ملفات PDF</b> واختر ملفًا أو أكثر. تظهر نسبة التقدم أثناء القراءة (الملفات الكبيرة تأخذ وقتًا أطول).</li>
+<li>اختر نوع السؤال من الأزرار أسفل الشاشة (تلقائي، صح/خطأ، اختيار من متعدد، مفتوح).</li>
+<li>اكتب سؤالك واضغط <b>إرسال</b>. لسؤال الاختيار من متعدد اكتب الخيارات هكذا: <code>A) ... B) ... C) ...</code></li>
+<li>تحت كل إجابة ستجد <b>الدليل</b>: اسم الملف ورقم الصفحة والنص الحرفي مع علامة ✓.</li>
+<li><b>الجلسات</b>: لكل جلسة ملفاتها ومحادثتها المحفوظة. من ☰ يمكنك إنشاء جلسة، تبديلها، إعادة تسميتها، حذفها، وتصدير المحادثة.</li>
+<li>زر <b>العربية / English</b> في أعلى الشاشة يبدّل لغة الواجهة.</li>
+</ol>
+</section>
+
+<section>
+<h2>طريقتا الإجابة</h2>
+<p><b>أ) بدون إنترنت (الافتراضية، مجانية):</b> يبحث عن الجملة التي تجيب في ملفاتك ويقتبسها. يعمل بقواعد ثابتة وليس ذكاءً اصطناعيًا، لذلك هو حذر: إذا لم يتأكد يقول <code>Not found in the document.</code> ولا يخمّن.</p>
+<p><b>ب) Claude يدويًا (مجانية، تحتاج إنترنت لحظة الاستخدام):</b> للأسئلة الأصعب التي تحتاج فهمًا:</p>
+<ol>
+<li>من ☰ اختر «Claude يدويًا». اكتب سؤالك.</li>
+<li>اضغط <b>📋 نسخ الطلب</b> ثم <b>فتح Claude</b> والصق الطلب في محادثة جديدة وأرسله.</li>
+<li>انسخ رد Claude كاملًا وارجع للتطبيق والصقه في الخانة، ثم <b>✅ تحقق واحفظ</b>.</li>
+<li>يتحقق التطبيق من كل اقتباس في ملفاتك. إن لم يجد الاقتباس في الملف يُلغي الإجابة ويعرض <code>Not found in the document.</code></li>
+</ol>
+<p class="warn">⚠️ هذه الطريقة يدوية عمدًا: لا نستخدم أي طريقة غير رسمية للوصول إلى حساب Claude. قد يضع الحساب المجاني حدودًا على عدد الرسائل أو طولها؛ إن قال Claude إن الرسالة طويلة فصغّر «حجم الطلب اليدوي» من ☰.</p>
+</section>
+
+<section>
+<h2>ما الذي يعمل بدون إنترنت؟</h2>
+<table>
+<tr><th>الميزة</th><th>بدون إنترنت</th></tr>
+<tr><td>فتح التطبيق بعد تثبيته</td><td>✅ نعم</td></tr>
+<tr><td>قراءة ملفات PDF والبحث فيها والتحقق من الاقتباسات</td><td>✅ نعم</td></tr>
+<tr><td>الإجابة بالمحرك المحلي (صح/خطأ، اختيار من متعدد، مفتوح)</td><td>✅ نعم</td></tr>
+<tr><td>الجلسات وسجل المحادثات وتصدير المحادثة</td><td>✅ نعم</td></tr>
+<tr><td>التثبيت لأول مرة / فتح الرابط لأول مرة</td><td>❌ يحتاج إنترنت</td></tr>
+<tr><td>«Claude يدويًا» (فتح موقع Claude)</td><td>❌ يحتاج إنترنت (التحقق من الرد يتم محليًا)</td></tr>
+</table>
+</section>
+
+<section>
+<h2>حدود يجب أن تعرفها</h2>
+<ul>
+<li>المحرك المحلي <b>ليس ذكاءً اصطناعيًا</b>: لا يستنتج ولا يحسب ولا يفهم المرادفات. قد يرفض الإجابة (Not found) على أسئلة جوابها موجود لكن بكلمات مختلفة. جرّب «Claude يدويًا» حينها.</li>
+<li>لا يلتقط تبديل أطراف الجملة (مثل «أ يضرب ب» و«ب يضرب أ») - راجع الدليل المعروض دائمًا.</li>
+<li>ملفات PDF الممسوحة ضوئيًا (صور) لا تحتوي نصًا، ويرفضها التطبيق؛ استخدم OCR أولًا.</li>
+<li>النص داخل الصور والرسوم البيانية لا يُقرأ. أرقام الصفحات هي ترتيب الصفحة في الملف.</li>
+<li>التطبيق لم يُجرَّب على هاتف أندرويد حقيقي قبل تسليمك إياه؛ جُرّب في بيئة اختبار آلية فقط. إن واجهت مشكلة فأخبرني بها.</li>
+</ul>
+</section>
+
+</main>
+</body>
+</html>

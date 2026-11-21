@@ -1,0 +1,18 @@
+{
+  "name": "StudyDoc - مساعد الدراسة",
+  "short_name": "StudyDoc",
+  "description": "Answers only from your PDFs, with page numbers and exact quotes. Works offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#4F46E5",
+  "lang": "ar",
+  "dir": "auto",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
