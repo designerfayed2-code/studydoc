@@ -1,5 +1,5 @@
 // Service worker: caches the whole app so it opens and works with no internet.
-const VERSION = 'a461c37932';
+const VERSION = '6a355a6329';
 const CACHE = 'studydoc-' + VERSION;
 const FILES = ['./', './index.html', './app.js', './core.js', './store.js', './pdfread.js', './ocr.js', './prompt.js', './styles.css',
   './pdf.min.js', './pdf.worker.min.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png',

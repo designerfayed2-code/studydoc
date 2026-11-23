@@ -23,11 +23,33 @@ export function makeOcr(worker, makeCanvas, scale = OCR_SCALE) {
   };
 }
 
-export async function createBrowserOcr() {
-  const lib = await import('./tesseract.esm.min.js');
-  const base = new URL('./', import.meta.url).href;
-  const worker = await lib.createWorker(OCR_LANGS, 1, {
-    workerPath: base + 'tesseract-worker.min.js', corePath: base, langPath: base, gzip: true,
-  });
-  return makeOcr(worker, (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; });
+// Keep the ORIGINAL error (message + cause) and print it to the console - never hide it behind a generic text.
+function failure(stage, e) {
+  const err = new Error(`${stage}: ${(e && e.message) || e}`);
+  err.cause = e;
+  console.error(`[StudyDoc OCR] failed while ${stage}:`, e);
+  return err;
+}
+
+export async function createBrowserOcr(onStatus = () => {}) {
+  let lib;
+  try {
+    lib = await import('./tesseract.esm.min.js');
+  } catch (e) { throw failure('loading tesseract.esm.min.js', e); }
+  // IMPORTANT: this bundle has only a DEFAULT export (the Tesseract object). `lib.createWorker` /
+  // `import { createWorker }` do NOT exist - using them was the bug that made OCR fail before any download.
+  const Tesseract = lib.default || lib;
+  if (typeof Tesseract.createWorker !== 'function') throw failure('finding createWorker', new Error('unexpected tesseract.esm.min.js build'));
+  const base = new URL('./', import.meta.url).href; // absolute URL of this folder (works on GitHub Pages sub-paths)
+  try {
+    const worker = await Tesseract.createWorker(OCR_LANGS, 1, {
+      workerPath: base + 'tesseract-worker.min.js', // blob importScripts() needs an ABSOLUTE url
+      corePath: base,                               // folder: the worker picks tesseract-core[-simd|-relaxedsimd]-lstm.wasm.js
+      langPath: base,                               // folder: fetches <lang>.traineddata.gz
+      gzip: true,
+      logger: (m) => { onStatus(m); console.debug('[StudyDoc OCR]', m.status, Math.round((m.progress || 0) * 100) + '%'); },
+      errorHandler: (e) => console.error('[StudyDoc OCR worker]', e),
+    });
+    return makeOcr(worker, (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; });
+  } catch (e) { throw failure('starting the OCR worker (worker / core / language files)', e); }
 }

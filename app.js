@@ -41,7 +41,7 @@ const T = {
     newTitle: 'New study session', close: 'Close',
     ocrOn: 'Read scanned pages with OCR (free, slower)', ocrReading: (n, t, name) => `Scanned pages: OCR ${n} of ${t} in ${name} ... (this can take a while)`,
     ocrBadge: (n) => `📷 ${n} page(s) read by OCR`, ocrWarn: 'Some evidence comes from OCR (text recognised from an image) and may contain small errors - check it against the page.',
-    cancelUpload: 'Cancel reading', err_cancelled: 'Cancelled.',
+    cancelUpload: 'Cancel reading', err_cancelled: 'Cancelled.', ocrLoading: (st, p) => `Preparing OCR (${st}) ${p}%`, techDetail: 'Technical detail',
     err_noTextOcr: 'No readable text was found, even with OCR. The scan may be too faint or blurry.',
     err_ocrFailed: 'OCR could not start. Its files are downloaded the first time you are online - connect to the internet once and try again.',
   },
@@ -60,7 +60,7 @@ const T = {
     placeholder: 'اكتب سؤالًا أو عبارة صح/خطأ أو سؤال اختيار من متعدد…', send: 'إرسال',
     type_auto: 'تلقائي', type_true_false: 'صح / خطأ', type_multiple_choice: 'اختيار من متعدد', type_open: 'مفتوح',
     engine: 'طريقة الإجابة', offline: 'بدون إنترنت (مجاني، على هاتفك)', manual: 'Claude يدويًا (نسخ ولصق، مجاني)',
-    helpOffline: 'يبحث عن الجملة التي تجيب في ملفاتك ويقتبسها حرفيًا. يعمل بقواعد ثابتة وليس ذكاءً اصطناعيًا، لذلك يقول «Not found in the document.» عند الشك.',
+    helpOffline: 'يبحث عن الجملة التي تجيب في ملفاتك ويقتبسها حرفيًا. يعمل بقواعد ثابتة وليس ذكاءً اصطناعيًا، لذلك يقول «\u2066Not found in the document.\u2069» عند الشك.',
     helpManual: 'يجهّز التطبيق طلبًا جاهزًا؛ الصقه في محادثة Claude المجانية ثم الصق الرد هنا، وسيتحقق التطبيق من كل اقتباس في ملفاتك.',
     settings: 'الإعدادات', manualBudget: 'حجم الطلب اليدوي (ألف رمز)', export: 'تصدير المحادثة', help: 'دليل الاستخدام',
     install: 'تثبيت التطبيق', online: 'متصل', offlineNow: 'غير متصل (التطبيق يعمل)', ready: 'التطبيق جاهز للعمل بدون إنترنت.',
@@ -79,7 +79,7 @@ const T = {
     newTitle: 'جلسة دراسة جديدة', close: 'إغلاق',
     ocrOn: 'قراءة الصفحات الممسوحة ضوئيًا بتقنية OCR (مجاني، أبطأ)', ocrReading: (n, t, name) => `صفحات ممسوحة: OCR ${n} من ${t} في ${name} ... (قد يستغرق وقتًا)`,
     ocrBadge: (n) => `📷 ${n} صفحة قُرئت بتقنية OCR`, ocrWarn: 'بعض الأدلة مصدرها OCR (نص مستخرج من صورة) وقد يحتوي أخطاء صغيرة - قارنه بالصفحة.',
-    cancelUpload: 'إلغاء القراءة', err_cancelled: 'أُلغيت العملية.',
+    cancelUpload: 'إلغاء القراءة', err_cancelled: 'أُلغيت العملية.', ocrLoading: (st, p) => `تجهيز OCR (${st}) ${p}%`, techDetail: 'التفاصيل التقنية',
     err_noTextOcr: 'لم يُعثر على نص مقروء حتى مع OCR. قد تكون الصورة باهتة أو غير واضحة.',
     err_ocrFailed: 'تعذّر تشغيل OCR. تُحمَّل ملفاته أول مرة عند الاتصال بالإنترنت - اتصل بالإنترنت مرة واحدة وأعد المحاولة.',
   },
@@ -189,7 +189,10 @@ export async function start(deps = {}) {
         if (known.has(sha)) { S.flash.push(['info', t('duplicate', f.name)]); continue; }
         S.signal = { cancelled: false };
         const doc = await extractPdf(buf, f.name, await pdfjs(), (n, total) => { S.progress = t('reading', n, total, f.name); if (n % 5 === 0 || n === total) render(); }, {
-          ocr: S.ocr ? (deps.ocr || createBrowserOcr) : null, signal: S.signal,
+          ocr: S.ocr ? (deps.ocr || (() => createBrowserOcr((m) => {
+            const pct = Math.round((m.progress || 0) * 100);
+            if (m.status && pct % 10 === 0) { S.progress = t('ocrLoading', m.status, pct); render(); }
+          }))) : null, signal: S.signal,
           onOcr: (k, total) => { S.progress = t('ocrReading', k, total, f.name); render(); },
         });
         const names = (await store.loadDocuments(session)).map((d) => d.name);
@@ -200,7 +203,9 @@ export async function start(deps = {}) {
         if (doc.unreadable_pages.length) msg += ' ' + t('partly', doc.unreadable_pages.length);
         S.flash.push(['ok', msg]);
       } catch (e) {
-        S.flash.push(['err', e instanceof PdfError ? `${f.name}: ${t('err_' + e.code)}` : `${f.name}: ${t('err_unreadable')}`]);
+        console.error('[StudyDoc] could not add', f.name, e);   // the original error always reaches the console
+        const detail = e && e.detail ? ` [${t('techDetail')}: ${e.detail}]` : '';
+        S.flash.push(['err', e instanceof PdfError ? `${f.name}: ${t('err_' + e.code)}${detail}` : `${f.name}: ${t('err_unreadable')} [${t('techDetail')}: ${(e && e.message) || e}]`]);
       }
     }
     S.sessions = await store.listSessions();

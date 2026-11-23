@@ -3,7 +3,7 @@ import { randomId } from './store.js';
 
 export const MIN_CHARS_PER_PAGE = 25;
 export class PdfError extends Error {
-  constructor(code, detail = '') { super(code + (detail ? `: ${detail}` : '')); this.code = code; }
+  constructor(code, detail = '', cause = undefined) { super(code + (detail ? `: ${detail}` : '')); this.code = code; this.detail = detail; this.cause = cause; }
 }
 
 let pdfjsPromise = null;
@@ -72,7 +72,8 @@ export async function extractPdf(buf, name, pdfjs, onProgress = () => {}, opts =
     if (unreadable.length && opts.ocr) {
       let engine = null;
       try { engine = await opts.ocr(); } catch (e) {
-        if (unreadable.length === pages.length) throw new PdfError('ocrFailed', String(e && e.message));
+        console.error('[StudyDoc] OCR engine could not start:', e);
+        if (unreadable.length === pages.length) throw new PdfError('ocrFailed', String((e && e.message) || e), e);
       }
       if (engine) {
         try {
